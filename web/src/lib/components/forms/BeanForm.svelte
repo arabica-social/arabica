@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { registerReauthDraft } from "#lib/stores/reauthDraft.js";
   import { goto } from "$app/navigation";
   import EntityCombo from "../EntityCombo.svelte";
   import NameSuggest from "./NameSuggest.svelte";
@@ -65,6 +66,46 @@
   let originError = $state("");
   let formError = $state("");
   let submitting = $state(false);
+
+  registerReauthDraft(
+    "bean",
+    () => ({
+      name,
+      origin,
+      variety,
+      roastLevel,
+      roastDate,
+      process,
+      description,
+      notes,
+      link,
+      roasterRKey,
+      roasterLabel,
+      rating,
+      showRating,
+      closed,
+      sourceRef,
+    }),
+    (draft) => {
+      ({
+        name,
+        origin,
+        variety,
+        roastLevel,
+        roastDate,
+        process,
+        description,
+        notes,
+        link,
+        roasterRKey,
+        roasterLabel,
+        rating,
+        showRating,
+        closed,
+        sourceRef,
+      } = draft);
+    },
+  );
 
   function validate(): boolean {
     nameError = name.trim() ? "" : "Name is required";

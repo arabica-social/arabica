@@ -131,3 +131,13 @@ three paths.
 
 Every error uses the shared `{error, code, fields?}` envelope. The expected
 codes are `invalid_request`, `not_found`, and `internal_error`.
+
+## `POST /api/beans`
+
+The authenticated create endpoint accepts JSON or form data. Pass `roaster_rkey`
+to link a saved roaster, or `new_roaster_name` to reuse or create a named roaster
+in the caller's own library. An explicit `roaster_rkey` takes precedence.
+Name matching ignores case and repeated whitespace. If multiple saved roasters
+match, the endpoint returns `409 ambiguous_roaster` before writing. If the
+roaster write succeeds but the bean write fails, the roaster remains available
+for the next save; the two PDS writes are not atomic.

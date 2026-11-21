@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { registerReauthDraft } from "#lib/stores/reauthDraft.js";
   import EntityCombo from "./EntityCombo.svelte";
   import { APIError } from "#lib/api/client.js";
   import {
@@ -21,6 +22,7 @@
   let name = $state("");
   let origin = $state("");
   let roasterRKey = $state("");
+  let roasterLabel = $state("");
   let brewerType = $state("");
   let grinderType = $state("");
   let burrType = $state("");
@@ -31,6 +33,39 @@
   let notes = $state("");
   let error = $state("");
   let saving = $state(false);
+  registerReauthDraft(
+    "station-form",
+    () => ({
+      name,
+      origin,
+      roasterRKey,
+      roasterLabel,
+      brewerType,
+      grinderType,
+      burrType,
+      location,
+      website,
+      link,
+      description,
+      notes,
+    }),
+    (draft) => {
+      ({
+        name,
+        origin,
+        roasterRKey,
+        roasterLabel,
+        brewerType,
+        grinderType,
+        burrType,
+        location,
+        website,
+        link,
+        description,
+        notes,
+      } = draft);
+    },
+  );
   let title = $derived(kind[0].toUpperCase() + kind.slice(1));
   async function submit(event: SubmitEvent) {
     event.preventDefault();
@@ -141,6 +176,7 @@
           placeholder="Search or create roaster"
           sectionLabel="Your roasters"
           bind:rkey={roasterRKey}
+          bind:label={roasterLabel}
           ariaLabel="Roaster"
         /><input
           class="w-full form-input"

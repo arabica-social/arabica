@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"tangled.org/arabica.social/arabica/internal/metrics"
@@ -138,8 +139,8 @@ func (h *Handler) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		Msg("User logged in successfully")
 
 	redirectTo := "/"
-	if cookie, err := r.Cookie("reauth_return"); err == nil && cookie.Value != "" {
-		redirectTo = cookie.Value
+	if cookie, err := r.Cookie("reauth_return"); err == nil {
+		redirectTo = authReturnPath(cookie.Value, "/")
 		http.SetCookie(w, &http.Cookie{
 			Name: "reauth_return", Value: "", Path: "/",
 			HttpOnly: true, Secure: h.config.SecureCookies,
@@ -196,10 +197,7 @@ func (h *Handler) HandleScopeUpgrade(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// Stash the return path so the OAuth callback redirects back to settings.
-	returnTo := r.FormValue("return_to")
-	if returnTo == "" {
-		returnTo = "/settings"
-	}
+	returnTo := authReturnPath(r.FormValue("return_to"), "/settings")
 	http.SetCookie(w, &http.Cookie{
 		Name: "reauth_return", Value: returnTo, Path: "/",
 		HttpOnly: true, Secure: h.config.SecureCookies,
@@ -245,16 +243,24 @@ func (h *Handler) HandleReauth(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode, MaxAge: -1,
 	})
 
-	// Set a short-lived cookie so the OAuth callback knows where to redirect
-	if returnTo := r.FormValue("return_to"); returnTo != "" {
-		http.SetCookie(w, &http.Cookie{
-			Name: "reauth_return", Value: returnTo, Path: "/",
-			HttpOnly: true, Secure: h.config.SecureCookies,
-			SameSite: http.SameSiteLaxMode, MaxAge: 300, // 5 minutes
-		})
-	}
+	http.SetCookie(w, &http.Cookie{
+		Name: "reauth_return", Value: authReturnPath(r.FormValue("return_to"), "/"), Path: "/",
+		HttpOnly: true, Secure: h.config.SecureCookies,
+		SameSite: http.SameSiteLaxMode, MaxAge: 1800,
+	})
 
 	h.HandleLoginSubmit(w, r)
+}
+
+func authReturnPath(value, fallback string) string {
+	if len(value) > 2048 || !strings.HasPrefix(value, "/") || strings.HasPrefix(value, "//") || strings.ContainsRune(value, '\\') {
+		return fallback
+	}
+	u, err := url.Parse(value)
+	if err != nil || u.Host != "" || u.IsAbs() {
+		return fallback
+	}
+	return value
 }
 
 // HandleLogout logs out the user

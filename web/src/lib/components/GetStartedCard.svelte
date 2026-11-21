@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { registerReauthDraft } from "#lib/stores/reauthDraft.js";
   import StationDrawer from "./StationDrawer.svelte";
   import type { OnboardingResponse, ReadinessStatus } from "../types/api";
 
@@ -12,6 +13,13 @@
   let refreshedOnboarding = $state<OnboardingResponse | null>(null);
   let currentOnboarding = $derived(refreshedOnboarding ?? onboarding);
   let openDrawer = $state("");
+  registerReauthDraft(
+    "station",
+    () => ({ openDrawer }),
+    (draft) => {
+      openDrawer = draft.openDrawer;
+    },
+  );
   let refreshing = $state(false);
   let isLibrary = $derived(mode === "library");
 

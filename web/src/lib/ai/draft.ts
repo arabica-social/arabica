@@ -36,10 +36,12 @@ const stringFields: Record<DraftKind, string[]> = {
     "notes",
     "link",
     "roaster_rkey",
+    "new_roaster_name",
     "source_ref",
   ],
   grinder: ["name", "grinder_type", "burr_type", "notes", "link", "source_ref"],
   brewer: ["name", "brewer_type", "description", "link", "source_ref"],
+  roaster: ["name", "location", "website"],
 };
 const numberFields: Record<DraftKind, string[]> = {
   brew: [
@@ -59,6 +61,7 @@ const numberFields: Record<DraftKind, string[]> = {
   bean: ["rating"],
   grinder: [],
   brewer: [],
+  roaster: [],
 };
 export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 const entries = (patch: DraftPatch) =>
@@ -84,6 +87,13 @@ export function validPatch(
     !patch ||
     typeof patch !== "object" ||
     Array.isArray(patch)
+  )
+    return false;
+  const values = patch as DraftPatch;
+  if (
+    kind === "bean" &&
+    meaningful(values.roaster_rkey) &&
+    meaningful(values.new_roaster_name)
   )
     return false;
   return Object.entries(patch).every(([key, value]) => {
@@ -138,8 +148,7 @@ export function createSession(
 export function isUsefulDraft(draft: DraftSession["draft"]): boolean {
   const f = draft.fields as DraftPatch;
   if (draft.kind === "bean") return meaningful(f.name) && meaningful(f.origin);
-  if (draft.kind === "grinder") return meaningful(f.name);
-  if (draft.kind === "brewer") return meaningful(f.name);
+  if (draft.kind !== "brew") return meaningful(f.name);
   const bean = meaningful(f.bean_rkey);
   const brewer = meaningful(f.brewer_rkey);
   const substantive = entries(f).filter(
@@ -203,8 +212,10 @@ function dependentClears(
   }
   return clears;
 }
+const roasterPaths: FieldPath[] = ["roaster_rkey", "new_roaster_name"];
 const recipePaths: FieldPath[] = ["recipe_rkey", "recipe_owner_did"];
 function guardedPaths(key: FieldPath): FieldPath[] {
+  if (roasterPaths.includes(key)) return roasterPaths;
   if (recipePaths.includes(key)) return [...recipePaths, "brewer_rkey"];
   if (
     [
@@ -372,6 +383,10 @@ export class DraftEngine {
     )
       patch = { ...patch, recipe_owner_did: null };
     const f = s.draft.fields as DraftPatch;
+    if (meaningful(patch.roaster_rkey) && meaningful(f.new_roaster_name))
+      patch = { ...patch, new_roaster_name: null };
+    if (meaningful(patch.new_roaster_name) && meaningful(f.roaster_rkey))
+      patch = { ...patch, roaster_rkey: null };
     const skipped: FieldPath[] = [];
     const accepted: DraftPatch = {};
     for (const [key, value] of entries(patch)) {

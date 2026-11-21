@@ -52,7 +52,7 @@ export type BeanInput = {
 
 export function createBean(
   fetchFn: typeof fetch,
-  input: BeanInput,
+  input: BeanInput & { new_roaster_name?: string },
 ): Promise<Bean> {
   return postJSON<Bean>(fetchFn, "/api/beans", input);
 }

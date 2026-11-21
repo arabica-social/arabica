@@ -158,7 +158,7 @@ func TestInvalidRequestAndLibraryNeverCallProvider(t *testing.T) {
 			for len(r.Messages) < 41 {
 				r.Messages = append(r.Messages, r.Messages[0])
 			}
-		}, "kind": func(r *Request) { r.Draft.Kind = "roaster" }, "unknown field": func(r *Request) { r.Draft.Fields["evil"] = true }, "source": func(r *Request) { r.Draft.Fields["recipe_owner_did"] = ownDID }, "null fields": func(r *Request) { r.Draft.Fields = nil },
+		}, "kind": func(r *Request) { r.Draft.Kind = "recipe" }, "unknown field": func(r *Request) { r.Draft.Fields["evil"] = true }, "source": func(r *Request) { r.Draft.Fields["recipe_owner_did"] = ownDID }, "null fields": func(r *Request) { r.Draft.Fields = nil },
 	} {
 		t.Run(name, func(t *testing.T) {
 			req := validRequest()

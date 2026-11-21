@@ -46,6 +46,15 @@ Unknown API, asset, well-known, and auth URLs retain backend responses rather th
 HTML shell fallbacks. Non-GET/HEAD requests are also excluded. Registered API,
 auth, mutation, and asset routes keep their existing behavior.
 
+## Browser OAuth return
+
+`POST /reauth` takes the `handle` (which can also be an account DID) and an
+optional `return_to` form value. On successful reauthentication, `GET
+/oauth/callback` redirects to that same-origin path or `/`. The return hint
+expires after 30 minutes. The SPA normally uses `/?resume_reauth=1` and restores
+the actual page and draft from that tab's session storage; form contents are
+not included in the OAuth request. See [session recovery](../fdr/FDR-008-session-recovery.md).
+
 ## AI-assisted creation
 
 See [ai-chat.md](ai-chat.md) for availability, chat draft proposals and server-side

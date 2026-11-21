@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { registerReauthDraft } from "#lib/stores/reauthDraft.js";
   import { goto } from "$app/navigation";
   import FormWorkspace from "../FormWorkspace.svelte";
+  import NameSuggest from "./NameSuggest.svelte";
   import LedgerHeader from "../LedgerHeader.svelte";
   import FormSection from "../FormSection.svelte";
   import { APIError } from "#lib/api/client.js";
@@ -23,9 +25,19 @@
   let location = $state(roaster?.location ?? "");
   // svelte-ignore state_referenced_locally
   let website = $state(roaster?.website ?? "");
+  // svelte-ignore state_referenced_locally
+  let sourceRef = $state(roaster?.source_ref ?? "");
   let nameError = $state("");
   let formError = $state("");
   let submitting = $state(false);
+
+  registerReauthDraft(
+    "roaster",
+    () => ({ name, location, website, sourceRef }),
+    (draft) => {
+      ({ name, location, website, sourceRef } = draft);
+    },
+  );
 
   function validate(): boolean {
     nameError = name.trim() ? "" : "Name is required";
@@ -47,7 +59,7 @@
       name: name.trim(),
       location: location.trim(),
       website: website.trim(),
-      ...(roaster?.source_ref ? { source_ref: roaster.source_ref } : {}),
+      ...(sourceRef ? { source_ref: sourceRef } : {}),
     };
 
     try {
@@ -96,22 +108,40 @@
           <label class="form-label" for="roaster-name"
             >Name <span class="text-red-500" aria-hidden="true">*</span></label
           >
-          <input
-            id="roaster-name"
-            name="name"
-            type="text"
-            class="w-full form-input-lg"
-            bind:value={name}
-            aria-label="Name"
-            placeholder="e.g. Onyx Coffee Lab"
-            required
-            autocomplete="organization"
-            aria-invalid={nameError !== ""}
-            aria-describedby={nameError ? "roaster-name-error" : undefined}
-            oninput={() => {
-              if (nameError && name.trim()) nameError = "";
-            }}
-          />
+          {#if isEdit}
+            <input
+              id="roaster-name"
+              name="name"
+              type="text"
+              class="w-full form-input-lg"
+              bind:value={name}
+              aria-label="Name"
+              placeholder="e.g. Onyx Coffee Lab"
+              required
+              autocomplete="organization"
+              aria-invalid={nameError !== ""}
+              aria-describedby={nameError ? "roaster-name-error" : undefined}
+              oninput={() => {
+                if (nameError && name.trim()) nameError = "";
+              }}
+            />
+          {:else}
+            <NameSuggest
+              endpoint="/api/suggestions/roasters"
+              placeholder="e.g. Onyx Coffee Lab"
+              inputId="roaster-name"
+              ariaLabel="Name"
+              ariaDescribedby={nameError ? "roaster-name-error" : undefined}
+              bind:name
+              bind:location
+              bind:website
+              bind:sourceRef
+              error={nameError}
+              oninput={() => {
+                if (nameError && name.trim()) nameError = "";
+              }}
+            />
+          {/if}
           {#if nameError}
             <p
               id="roaster-name-error"

@@ -9,11 +9,13 @@
     library = {},
     brewerType = "",
     showRating = true,
+    oneditroaster,
   }: {
     draft: Draft;
     library?: Library;
     brewerType?: string;
     showRating?: boolean;
+    oneditroaster?: () => void;
   } = $props();
   let values = $derived(draft.fields as DraftPatch);
   const supplied = (value: unknown) =>
@@ -23,6 +25,7 @@
     bean: "Bean",
     grinder: "Grinder",
     brewer: "Brewer",
+    roaster: "Roaster",
   };
   const types: Record<string, string> = {
     pourover: "Pour-over",
@@ -60,6 +63,8 @@
     fields[draft.kind].filter(
       (field) =>
         field.key !== "name" &&
+        field.key !== "roaster_rkey" &&
+        field.key !== "new_roaster_name" &&
         (showRating || field.key !== "rating") &&
         !(draft.kind === "brew" && primaryKeys.includes(field.key)) &&
         // The bean is already the title when resolved; unresolved selections still need context.
@@ -67,6 +72,10 @@
         supplied(values[field.key]),
     ),
   );
+  let roaster = $derived(
+    library.roasters?.find((item) => item.rkey === values.roaster_rkey),
+  );
+  let newRoaster = $derived(values.new_roaster_name?.trim());
   let ratio = $derived(
     typeof values.coffee_amount === "number" &&
       values.coffee_amount > 0 &&
@@ -127,8 +136,27 @@
         </div>{/if}
     </dl>
   {/if}
-  {#if remaining.length || (draft.kind === "bean" && supplied(values.closed))}
+  {#if remaining.length || draft.kind === "bean"}
     <dl class="facts">
+      {#if draft.kind === "bean"}<div>
+          <dt>Roaster</dt>
+          <dd>
+            {#if roaster?.name}{roaster.name}
+            {:else if values.roaster_rkey}Selected (unavailable)
+            {:else if newRoaster}
+              {newRoaster}{#if oneditroaster}{" "}<span class="roaster-note"
+                  >(add on save)</span
+                >{/if}
+            {:else}<span>Not set</span>{/if}
+            {#if oneditroaster && !values.roaster_rkey && !newRoaster}
+              <button
+                type="button"
+                class="link roaster-action"
+                onclick={oneditroaster}>Set roaster</button
+              >
+            {/if}
+          </dd>
+        </div>{/if}
       {#each remaining as field (field.key)}
         <div class:prose={field.type === "textarea"}>
           <dt>{label(field)}</dt>
@@ -199,6 +227,12 @@
     line-height: 1.6;
     overflow-wrap: anywhere;
     white-space: pre-wrap;
+  }
+  .roaster-action {
+    margin-inline-start: 0.5rem;
+  }
+  .roaster-note {
+    color: var(--text-muted);
   }
   .metrics {
     display: grid;

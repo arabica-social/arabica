@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 )
 
 // Field rules apply to incomplete drafts, not create-record required fields.
@@ -34,9 +36,10 @@ var fields = map[string]map[string]fieldRule{
 		"espresso_params.yield_weight": num(maxSafeNumber, false), "espresso_params.pressure": num(maxSafeNumber, false), "espresso_params.pre_infusion_seconds": num(maxSafeNumber, true),
 		"pourover_params.bloom_water": num(maxSafeNumber, true), "pourover_params.bloom_seconds": num(maxSafeNumber, true), "pourover_params.drawdown_seconds": num(maxSafeNumber, true), "pourover_params.bypass_water": num(maxSafeNumber, true), "pourover_params.filter": text(100), "pours": {Type: "pours"},
 	},
-	"bean":    {"name": text(200), "origin": text(200), "variety": text(200), "roast_level": text(100), "roast_date": text(10), "process": text(100), "description": text(2000), "notes": text(2000), "link": text(500), "roaster_rkey": {Type: "reference"}, "rating": {Type: "number", Min: 1, Max: 10, Integer: true}, "closed": {Type: "boolean"}, "source_ref": {Type: "empty"}},
+	"bean":    {"name": text(200), "origin": text(200), "variety": text(200), "roast_level": text(100), "roast_date": text(10), "process": text(100), "description": text(2000), "notes": text(2000), "link": text(500), "roaster_rkey": {Type: "reference"}, "new_roaster_name": text(arabica.MaxNameLength), "rating": {Type: "number", Min: 1, Max: 10, Integer: true}, "closed": {Type: "boolean"}, "source_ref": {Type: "empty"}},
 	"grinder": {"name": text(200), "grinder_type": text(50), "burr_type": text(50), "notes": text(2000), "link": text(500), "source_ref": {Type: "empty"}},
 	"brewer":  {"name": text(200), "brewer_type": text(100), "description": text(2000), "link": text(500), "source_ref": {Type: "empty"}},
+	"roaster": {"name": text(arabica.MaxNameLength), "location": text(arabica.MaxLocationLength), "website": text(arabica.MaxWebsiteLength)},
 }
 var errFields = errors.New("invalid draft fields")
 
@@ -76,7 +79,7 @@ func validateFields(kind string, patch map[string]any) error {
 					return errFields
 				}
 			}
-			if key == "link" && s != "" {
+			if (key == "link" || key == "website") && s != "" {
 				u, err := url.Parse(s)
 				if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Hostname() == "" || u.User != nil {
 					return errFields

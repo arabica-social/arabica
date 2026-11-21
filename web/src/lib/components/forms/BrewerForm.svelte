@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { registerReauthDraft } from "#lib/stores/reauthDraft.js";
   import { goto } from "$app/navigation";
   import FormWorkspace from "../FormWorkspace.svelte";
   import LedgerHeader from "../LedgerHeader.svelte";
@@ -40,6 +41,14 @@
   let nameError = $state("");
   let formError = $state("");
   let submitting = $state(false);
+
+  registerReauthDraft(
+    "brewer",
+    () => ({ name, brewerType, description, link }),
+    (draft) => {
+      ({ name, brewerType, description, link } = draft);
+    },
+  );
 
   function validate(): boolean {
     nameError = name.trim() ? "" : "Name is required";

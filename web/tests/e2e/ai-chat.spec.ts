@@ -4,6 +4,63 @@ import type { Page } from "@playwright/test";
 // Record the interaction for visual motion review alongside the contract assertions.
 test.use({ video: "on", aiAccess: true });
 
+test("roaster chat draft is editable and only Save creates a record", async ({
+  authedPage: page,
+}) => {
+  const name = `Chat roaster ${Date.now().toString(36)}`;
+  const website = "https://example.com";
+  let writes = 0;
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      new URL(request.url()).pathname === "/api/roasters"
+    )
+      writes++;
+  });
+  await page.route("**/api/ai/status", (route) =>
+    route.fulfill({ json: { enabled: true, allowed: true } }),
+  );
+  await page.route("**/api/ai/chat", (route) =>
+    route.fulfill({
+      json: {
+        reply: "Roaster details added.",
+        kind: "roaster",
+        patch: { name, location: "Oslo", website },
+        choices: [],
+      },
+    }),
+  );
+
+  await page.goto("/chat");
+  await page
+    .getByRole("textbox", { name: "Message" })
+    .fill(`Add a roaster named ${name} in Oslo. Website: ${website}`);
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+  await openEditor(page);
+  await expect(page.getByRole("textbox", { name: "Website" })).toHaveValue(
+    website,
+  );
+  await page.getByRole("textbox", { name: "Location" }).fill("Oslo, Norway");
+  await page.reload();
+  await openEditor(page);
+  await expect(page.getByRole("textbox", { name: "Location" })).toHaveValue(
+    "Oslo, Norway",
+  );
+  expect(writes).toBe(0);
+
+  await page.getByRole("button", { name: "Save roaster" }).click();
+  const saved = page.getByRole("link", { name: "View saved roaster" });
+  await expect(saved).toHaveAttribute("href", /^\/roasters\/[^/]+\/[^/]+$/);
+  expect(writes).toBe(1);
+  await saved.click();
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(page.getByText("Oslo, Norway", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /example\.com/ }),
+  ).toHaveAttribute("href", website);
+});
+
 async function settleMotion(page: Page) {
   await page.evaluate(async () => {
     await (
@@ -1338,4 +1395,61 @@ test("ambiguity options show only bean alternatives, highlight, and dismiss once
   await expect(page.locator(".draft-preview")).toContainText("October Fix");
   await expect(page.locator(".draft-preview")).toContainText("Orea");
   expect(writes).toEqual([]);
+});
+
+test("bean preview shows a missing roaster and Save can create and link a named one", async ({
+  authedPage: page,
+  apiRequest,
+}) => {
+  await page.route("**/api/ai/status", (route) =>
+    route.fulfill({ json: { enabled: true, allowed: true } }),
+  );
+  await page.route("**/api/ai/chat", (route) => {
+    const { messages } = route.request().postDataJSON();
+    return route.fulfill({
+      json: {
+        reply: "Bean details added.",
+        kind: "bean",
+        patch:
+          messages.length === 1
+            ? { name: "Pink Bourbon", origin: "Colombia" }
+            : { new_roaster_name: "North Star Coffee" },
+        choices: [],
+      },
+    });
+  });
+  await page.goto("/chat");
+  const composer = page.getByRole("textbox", { name: "Message" });
+  const send = page.getByRole("button", { name: "Send", exact: true });
+  await composer.fill("A bean named Pink Bourbon from Colombia");
+  await send.click();
+  const preview = page.locator(".draft-preview");
+  await expect(preview.getByText("Not set", { exact: true })).toBeVisible();
+  await preview.getByRole("button", { name: "Set roaster" }).click();
+  await expect(
+    page.getByRole("combobox", { name: "Roaster", exact: true }),
+  ).toBeFocused();
+  await composer.fill("The roaster is North Star Coffee");
+  await send.click();
+  await expect(
+    preview.getByText("North Star Coffee (add on save)"),
+  ).toBeVisible();
+  const before = await (await apiRequest.get("/api/data")).json();
+  expect(before.roasters).toHaveLength(0);
+  expect(before.beans).toHaveLength(0);
+  await page.reload();
+  await expect(
+    preview.getByText("North Star Coffee (add on save)"),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Save bean" }).click();
+  await expect(
+    page.getByRole("link", { name: "View saved bean" }),
+  ).toBeVisible();
+  await expect(
+    preview.getByText("North Star Coffee", { exact: true }),
+  ).toBeVisible();
+  const after = await (await apiRequest.get("/api/data")).json();
+  expect(after.roasters).toHaveLength(1);
+  expect(after.beans).toHaveLength(1);
+  expect(after.beans[0].roaster.rkey).toBe(after.roasters[0].rkey);
 });

@@ -3,9 +3,10 @@ import type {
   BrewerInput,
   BrewInput,
   GrinderInput,
+  RoasterInput,
 } from "../api/entities";
 
-export type DraftKind = "brew" | "bean" | "grinder" | "brewer";
+export type DraftKind = "brew" | "bean" | "grinder" | "brewer" | "roaster";
 type NullableLeaves<T> = {
   [K in keyof T as T[K] extends object | undefined ? never : K]?: T[K] | null;
 };
@@ -25,9 +26,10 @@ type BrewFields = Omit<
 } & { pours?: BrewInput["pours"] | null };
 export type FieldsByKind = {
   brew: BrewFields;
-  bean: NullableLeaves<BeanInput>;
+  bean: NullableLeaves<BeanInput> & { new_roaster_name?: string | null };
   grinder: NullableLeaves<GrinderInput>;
   brewer: NullableLeaves<BrewerInput>;
+  roaster: Omit<NullableLeaves<RoasterInput>, "source_ref">;
 };
 export type Draft = {
   [K in DraftKind]: { kind: K; fields: FieldsByKind[K] };
@@ -35,7 +37,8 @@ export type Draft = {
 export type DraftPatch = FieldsByKind["brew"] &
   FieldsByKind["bean"] &
   FieldsByKind["grinder"] &
-  FieldsByKind["brewer"];
+  FieldsByKind["brewer"] &
+  FieldsByKind["roaster"];
 export type FieldPath = keyof DraftPatch;
 export type FieldValue = Exclude<DraftPatch[FieldPath], undefined>;
 export type RequestToken = {

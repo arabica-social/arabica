@@ -12,6 +12,7 @@
     description?: string;
     emptyLabel?: string;
     expectedWater?: number | string;
+    onStructureChange?: () => void;
   };
 
   let {
@@ -20,10 +21,12 @@
     description = "Record the water amount and time for each pour.",
     emptyLabel = "Add first pour",
     expectedWater = "",
+    onStructureChange,
   }: Props = $props();
 
   function addPour() {
     pours = [...pours, { water: "", time: "" }];
+    onStructureChange?.();
   }
 
   function numericValue(value: number | string | undefined) {
@@ -51,6 +54,7 @@
 
   function removePour(index: number) {
     pours = pours.filter((_, i) => i !== index);
+    onStructureChange?.();
   }
 </script>
 

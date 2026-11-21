@@ -51,6 +51,49 @@ async function provisionAccount(): Promise<{
   return { ...account, request };
 }
 
+test("roaster creation autofills details from a selected suggestion", async ({
+  authedPage: page,
+  waitForIndex,
+}) => {
+  const suffix = Date.now().toString(36);
+  const name = `Roaster Suggestion ${suffix}`;
+  const website = "https://roaster.example";
+  const other = await provisionAccount();
+  const response = await other.request.post("/api/roasters", {
+    data: { name, location: "Oslo", website },
+  });
+  expect(response.ok()).toBe(true);
+  const source = await response.json();
+  await other.request.dispose();
+  const sourceRef = `at://${other.did}/social.arabica.alpha.roaster/${source.rkey}`;
+  await waitForIndex(sourceRef);
+
+  await page.goto("/roasters/new");
+  await page.getByLabel("Name").fill(suffix);
+  await page.getByRole("button", { name: new RegExp(name) }).click();
+  await expect(page.getByLabel("Name")).toHaveValue(name);
+  await expect(page.getByLabel("Location")).toHaveValue("Oslo");
+  await expect(page.getByLabel("Website")).toHaveValue(website);
+  await page.getByLabel("Location").fill("Oslo, Norway");
+
+  const created = page.waitForResponse(
+    (r) =>
+      new URL(r.url()).pathname === "/api/roasters" &&
+      r.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Add Roaster" }).click();
+  const saved = await created;
+  expect(saved.ok()).toBe(true);
+  expect(saved.request().postDataJSON()).toEqual({
+    name,
+    location: "Oslo, Norway",
+    website,
+    source_ref: sourceRef,
+  });
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(page.getByText("Oslo, Norway", { exact: true })).toBeVisible();
+});
+
 test("non-owner can view a record but Edit and Delete are hidden", async ({
   authedPage: page,
 }) => {

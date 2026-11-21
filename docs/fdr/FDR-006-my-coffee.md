@@ -14,6 +14,9 @@ above them. There is no separate equipment-summary sidebar.
 Add and Log brew remain page actions. Empty collections offer their relevant
 creation action, including logging a first brew. These actions complement the
 global navigation rather than introducing another summary of the collection.
+When adding a roaster, typing its name searches community records. Selecting a
+suggestion fills the name and any available location and website. The fields
+remain editable, and only Add Roaster saves the new record to the user's account.
 
 Refresh sits beside the collection navigation. It reloads records from the
 user's account without switching collection, disables while pending, and reports

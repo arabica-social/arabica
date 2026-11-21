@@ -1,12 +1,19 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { onNavigate } from "$app/navigation";
+  import { goto, onNavigate } from "$app/navigation";
   import { homeToChatTransition } from "#lib/ai/navigationTransition.js";
   import { page } from "$app/state";
   import Header from "#lib/components/Header.svelte";
   import Footer from "#lib/components/Footer.svelte";
   import LoginModal from "#lib/components/LoginModal.svelte";
   import { app, session, refreshSession } from "#lib/stores/session.js";
+  import {
+    allowReauthUnload,
+    captureReauth,
+    currentPath,
+    reauthLanding,
+    resumeReauth,
+  } from "#lib/stores/reauthDraft.js";
   import { themeStorageKey } from "#lib/stores/storageKeys.js";
   import {
     toasts,
@@ -36,6 +43,7 @@
 
   let showSessionModal = $state(false);
   let showLoginModal = $state(false);
+  let reauthStorageFailed = $state(false);
   let sessionDialog = $state<HTMLDialogElement>();
 
   // Apply the saved theme and synchronize changes across tabs.
@@ -81,6 +89,28 @@
 
   function dismissSessionModal() {
     showSessionModal = false;
+    reauthStorageFailed = false;
+  }
+
+  function prepareReauth(event: SubmitEvent) {
+    if (!$session.did && !$session.handle) {
+      event.preventDefault();
+      dismissSessionModal();
+      showLoginModalFn();
+      return;
+    }
+    const { stored, hasEdits } = captureReauth($session.did);
+    if (!stored && hasEdits && !reauthStorageFailed) {
+      event.preventDefault();
+      reauthStorageFailed = true;
+      return;
+    }
+    const form = event.currentTarget as HTMLFormElement;
+    const destination = form.elements.namedItem(
+      "return_to",
+    ) as HTMLInputElement;
+    destination.value = stored ? reauthLanding : currentPath();
+    allowReauthUnload();
   }
 
   function handleSessionBackdropClick(event: MouseEvent) {
@@ -113,7 +143,13 @@
   onMount(() => {
     // In production the Go SPA shell injects this state into <body>. Vite's
     // development shell cannot, so refreshSession uses the proxied API.
-    void refreshSession();
+    void refreshSession()
+      .then(() =>
+        resumeReauth($session.did, (path) =>
+          goto(path, { replaceState: true }),
+        ),
+      )
+      .catch(() => pushToast("Could not return to the previous page."));
   });
 
   $effect(() => {
@@ -206,16 +242,27 @@
       off.
     </p>
     <div class="flex flex-col gap-3">
-      <form id="reauth-form" method="POST" action="/reauth">
-        {#if $session.handle}
-          <input type="hidden" name="handle" value={$session.handle} />
-        {/if}
+      {#if reauthStorageFailed}
+        <p class="text-sm" role="alert">
+          This browser couldn't keep your form changes. Dismiss to copy them
+          before logging in.
+        </p>
+      {/if}
+      <form
+        id="reauth-form"
+        method="POST"
+        action="/reauth"
+        onsubmit={prepareReauth}
+      >
         <input
           type="hidden"
-          name="return_to"
-          value={window.location.pathname}
+          name="handle"
+          value={$session.did || $session.handle}
         />
-        <button type="submit" class="btn-primary w-full">Log In Again</button>
+        <input type="hidden" name="return_to" />
+        <button type="submit" class="btn-primary w-full">
+          {reauthStorageFailed ? "Log In Without Form Changes" : "Log In Again"}
+        </button>
       </form>
       <button
         type="button"

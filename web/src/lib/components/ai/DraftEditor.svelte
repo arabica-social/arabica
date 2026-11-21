@@ -326,6 +326,7 @@
           : undefined}
         value={String(value(field.key))}
         required={field.required}
+        maxlength={field.key === "new_roaster_name" ? 200 : undefined}
         min={field.min}
         max={field.max}
         step={field.type === "number" ? (field.step ?? "1") : undefined}

@@ -390,3 +390,40 @@ describe("undo and bounded session", () => {
     ).toBe(expected);
   });
 });
+
+describe("bean roaster reconciliation", () => {
+  it("keeps the saved and new options mutually exclusive and undoable", () => {
+    const e = new DraftEngine(createSession("did:plc:a", "session-a", "bean"));
+    e.edit({ new_roaster_name: "North Star" });
+    const t = e.beginRequest("saved-roaster")!;
+    expect(e.applyResponse(t, { roaster_rkey: "own-roaster" }).status).toBe(
+      "applied",
+    );
+    expect(e.snapshot().draft.fields).toEqual({
+      roaster_rkey: "own-roaster",
+      new_roaster_name: null,
+    });
+    e.undo();
+    expect(e.snapshot().draft.fields).toEqual({
+      new_roaster_name: "North Star",
+    });
+  });
+
+  it("protects newer manual choices across both forms of a roaster", () => {
+    const e = new DraftEngine(createSession("did:plc:a", "session-a", "bean"));
+    const t = e.beginRequest("roaster")!;
+    e.edit({ roaster_rkey: "own-roaster" });
+    expect(
+      e.applyResponse(t, { new_roaster_name: "North Star", origin: "Kenya" })
+        .status,
+    ).toBe("conflict");
+    expect(e.snapshot().draft.fields).toEqual({
+      roaster_rkey: "own-roaster",
+      origin: "Kenya",
+    });
+    expect(
+      e.applyChoice({ token: t, patch: { new_roaster_name: "North Star" } })
+        .status,
+    ).toBe("needs-confirmation");
+  });
+});

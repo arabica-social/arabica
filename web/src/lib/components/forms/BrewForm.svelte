@@ -19,6 +19,10 @@
     userPrefs,
   } from "../../stores/userPrefs";
   import { session, warnIfSessionExpired } from "../../stores/session";
+  import {
+    consumeReauthUnload,
+    registerReauthDraft,
+  } from "#lib/stores/reauthDraft.js";
   import { pushToast } from "../../stores/toasts";
   import { beforeNavigate, goto } from "$app/navigation";
   import { createBrew, updateBrew, type BrewInput } from "../../api/entities";
@@ -46,7 +50,7 @@
   let { brew, recipeRKey = "", recipeOwnerDID = "", isEdit }: Props = $props();
 
   let cachedData = $state<Record<string, unknown>>({});
-  let activeRecipe = $state<Recipe | null>(null);
+  let hasActiveRecipe = $state(false);
   let recipeExpanded = $state(false);
   let recipeRatio = $state("");
   let recipePours = $state<Pour[]>([]);
@@ -107,6 +111,7 @@
   let formError = $state("");
   let dirty = $state(false);
   let saved = false;
+  let restored = false;
   let recipeGen = 0;
   let acceptedGrinder = { rkey: "", label: "" };
   let acceptedBrewer = { rkey: "", label: "" };
@@ -213,7 +218,7 @@
     await tick();
     formElement
       ?.querySelector<HTMLInputElement>(
-        recipeExpanded && activeRecipe
+        recipeExpanded && hasActiveRecipe
           ? "#recipe-adjustment-coffee"
           : ".preparation-fields input",
       )
@@ -350,7 +355,7 @@
         brewerRKey = "";
         brewerLabel = "";
         acceptedBrewer = { rkey: "", label: "" };
-        if (!activeRecipe) brewerCategory = "";
+        if (!hasActiveRecipe) brewerCategory = "";
         break;
       case "method":
         method = "";
@@ -656,7 +661,7 @@
       recipeNotice = "";
       recipeRKeyValue = "";
       recipeLabel = "";
-      activeRecipe = null;
+      hasActiveRecipe = false;
       recipeOwner = "";
       acceptedRecipe = { rkey: "", label: "", owner: "" };
       recipeExpanded = false;
@@ -715,7 +720,7 @@
 
   async function applyRecipe(selectedRKey: string, selectedOwner = "") {
     if (!selectedRKey) {
-      activeRecipe = null;
+      hasActiveRecipe = false;
       recipeOwner = "";
       recipeExpanded = false;
       return;
@@ -769,7 +774,7 @@
         brewerLabel = recipeBrewer.name;
         acceptedBrewer = { rkey: brewerRKey, label: brewerLabel };
       }
-      activeRecipe = recipe;
+      hasActiveRecipe = true;
       recipeLabel = recipe.name;
       acceptedRecipe = {
         rkey: selectedRKey,
@@ -872,7 +877,7 @@
     // Keep the pour-over bloom water in lockstep with the first pour while a
     // recipe is driving the pours. Bloom only tracks the first pour; later
     // manual edits to bloom water survive until the next scaling pass.
-    if (activeRecipe && brewerCategory === "pourover" && scaled.length > 0) {
+    if (hasActiveRecipe && brewerCategory === "pourover" && scaled.length > 0) {
       const firstPourWater = positiveNumber(scaled[0].water);
       if (firstPourWater !== null) pouroverBloomWater = String(firstPourWater);
     }
@@ -909,7 +914,7 @@
   }
 
   function recipeSummary(): string {
-    if (!activeRecipe) return "";
+    if (!hasActiveRecipe) return "";
     const parts: string[] = [];
     if (coffeeAmount) parts.push(`${coffeeAmount}g coffee`);
     if (waterAmount) parts.push(`${waterAmount}g water`);
@@ -992,6 +997,97 @@
 
   initializeFromBrew();
 
+  registerReauthDraft(
+    "brew",
+    () => ({
+      recipeRKeyValue,
+      recipeLabel,
+      recipeOwner,
+      beanRKey,
+      beanLabel,
+      grinderRKey,
+      grinderLabel,
+      brewerRKey,
+      brewerLabel,
+      brewerCategory,
+      coffeeAmount,
+      waterAmount,
+      grindSize,
+      temperature,
+      timeSeconds,
+      timeUnit,
+      tastingNotes,
+      rating,
+      method,
+      pours,
+      espressoYieldWeight,
+      espressoPressure,
+      espressoPreInfusionSeconds,
+      pouroverBloomWater,
+      pouroverBloomSeconds,
+      pouroverDrawdownSeconds,
+      pouroverBypassWater,
+      pouroverFilter,
+      mode,
+      moreExpanded,
+      hasActiveRecipe,
+      recipeExpanded,
+      recipeRatio,
+      recipePours,
+    }),
+    (draft) => {
+      ({
+        recipeRKeyValue,
+        recipeLabel,
+        recipeOwner,
+        beanRKey,
+        beanLabel,
+        grinderRKey,
+        grinderLabel,
+        brewerRKey,
+        brewerLabel,
+        brewerCategory,
+        coffeeAmount,
+        waterAmount,
+        grindSize,
+        temperature,
+        timeSeconds,
+        timeUnit,
+        tastingNotes,
+        rating,
+        method,
+        pours,
+        espressoYieldWeight,
+        espressoPressure,
+        espressoPreInfusionSeconds,
+        pouroverBloomWater,
+        pouroverBloomSeconds,
+        pouroverDrawdownSeconds,
+        pouroverBypassWater,
+        pouroverFilter,
+        mode,
+        moreExpanded,
+        hasActiveRecipe,
+        recipeExpanded,
+        recipeRatio,
+        recipePours,
+      } = draft);
+      ++recipeGen;
+      recipeLoading = false;
+      autofilled = {};
+      acceptedGrinder = { rkey: grinderRKey, label: grinderLabel };
+      acceptedBrewer = { rkey: brewerRKey, label: brewerLabel };
+      acceptedRecipe = {
+        rkey: recipeRKeyValue,
+        label: recipeLabel,
+        owner: recipeOwner,
+      };
+      restored = true;
+      dirty = true;
+    },
+    () => dirty && !saved,
+  );
+
   async function loadData() {
     dataState = "loading";
     try {
@@ -1002,7 +1098,7 @@
       cachedData = data;
       historyBrews = (data.brews as Brew[]) ?? [];
       dataState = "ready";
-      applyAutofill();
+      if (!restored) applyAutofill();
     } catch (error) {
       // appCache currently throws a plain Error with this message, not an
       // APIError. Handle both until the shared cache exposes typed failures.
@@ -1025,17 +1121,17 @@
       void loadUserPrefs().then(() => {
         if (!modeChosen && !dirty)
           mode = initialBrewFormMode(false, null, $userPrefs.brew_form_mode);
-        applyAutofill();
+        if (!restored) applyAutofill();
       });
     const beforeUnload = (event: BeforeUnloadEvent) => {
-      if (dirty && !saved) {
+      if (!consumeReauthUnload() && dirty && !saved) {
         event.preventDefault();
         event.returnValue = "";
       }
     };
     window.addEventListener("beforeunload", beforeUnload);
     // Auto-apply recipe from URL param on new brew.
-    if (recipeRKeyValue && !brew) {
+    if (recipeRKeyValue && !brew && !restored) {
       void applyRecipe(recipeRKeyValue, recipeOwner);
     }
     // Proactively check whether the OAuth session is still resumable so we
@@ -1144,7 +1240,8 @@
         goto("/my-coffee");
       }
     } catch (error) {
-      console.error("Brew save failed:", error);
+      if (!(error instanceof APIError && error.status === 401))
+        console.error("Brew save failed:", error);
       formError =
         "Failed to save brew. Your draft is still here; please try again.";
       pushToast("Failed to save brew");
@@ -1423,7 +1520,10 @@
         </p>
         <button
           type="button"
-          onclick={() => clearAutofill()}
+          onclick={() => {
+            dirty = true;
+            clearAutofill();
+          }}
           class="btn-secondary text-sm">Clear autofill</button
         >
       </div>
@@ -1453,7 +1553,7 @@
           />
         </div>
 
-        {#if activeRecipe || (isEdit && recipeRKeyValue)}
+        {#if hasActiveRecipe || (isEdit && recipeRKeyValue)}
           <div class="section-box">
             <p class="text-helper">Changes here do not change the recipe.</p>
             <div class="flex items-center justify-between gap-2">
@@ -1472,7 +1572,7 @@
                 {recipeExpanded ? "Done adjusting" : "Edit brewing details"}
               </button>
             </div>
-            {#if recipeExpanded && mode === "detailed" && activeRecipe}
+            {#if recipeExpanded && mode === "detailed" && hasActiveRecipe}
               <div class="recipe-adjustment" aria-label="Recipe adjustment">
                 <div class="recipe-adjustment-heading">
                   <p class="text-helper">
@@ -1658,6 +1758,7 @@
             {#if layout.category === "pourover" || pours.length > 0}<PoursEditor
                 bind:pours
                 expectedWater={waterAmount}
+                onStructureChange={() => (dirty = true)}
               />{/if}
 
             {#if layout.category === "espresso" || hasEspresso}

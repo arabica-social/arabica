@@ -102,6 +102,7 @@ export const fields: Record<DraftKind, EditorField[]> = {
     name,
     { key: "origin", label: "Origin", required: true },
     { key: "roaster_rkey", label: "Roaster", library: "roasters" },
+    { key: "new_roaster_name", label: "New roaster name" },
     { key: "variety", label: "Variety" },
     {
       key: "roast_level",
@@ -138,6 +139,11 @@ export const fields: Record<DraftKind, EditorField[]> = {
     { key: "brewer_type", label: "Type", options: brewerTypes },
     { key: "description", label: "Description", type: "textarea" },
     { key: "link", label: "Link", type: "url" },
+  ],
+  roaster: [
+    name,
+    { key: "location", label: "Location" },
+    { key: "website", label: "Website", type: "url" },
   ],
 };
 

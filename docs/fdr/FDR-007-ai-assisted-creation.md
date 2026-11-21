@@ -5,8 +5,8 @@
 
 ## Overview
 
-A task-specific conversation turns descriptions into editable brew, bean, grinder
-or brewer drafts. It is an optional alternative entry path, not a replacement for
+A task-specific conversation turns descriptions into editable brew, bean, grinder,
+brewer, or roaster drafts. It is an optional alternative entry path, not a replacement for
 manual forms or a general-purpose assistant. Only the Save button writes records.
 
 ## Behavior
@@ -71,6 +71,12 @@ manual forms or a general-purpose assistant. Only the Save button writes records
   default, including on later text-only follow-ups: visible coffee names
   are not lexical proof, so proposed library references remain reviewable unless
   grounded in explicit user text.
+- A roaster draft needs a name. Location and website are optional and can be
+  reviewed or edited before saving. A bean draft shows its roaster even when it
+  is not set. **Set roaster** opens the editor, where the user can select a saved
+  roaster or enter a new name. Chat can propose either. **Save bean** links the
+  saved selection or creates and links the named roaster if needed. An unset
+  roaster does not block saving.
 - The server grounds references against the viewer's own library. Uncertain
   matches appear as clickable record choices; choosing one changes the draft,
   never creates/imports a record. Hover and keyboard focus visibly highlight a
@@ -267,7 +273,7 @@ validation, caps and read-only capabilities enforce the operational boundary.
 ## Deferred
 
 History search, streaming, conversational save confirmation,
-recipe/roaster drafts, URL ingestion, and editing/deleting saved records.
+recipe drafts, URL ingestion, and editing/deleting saved records.
 
 ## Related
 

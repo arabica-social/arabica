@@ -34,6 +34,7 @@
     createBean,
     createGrinder,
     createBrewer,
+    createRoaster,
     type BrewInput,
     type BeanInput,
     type GrinderInput,
@@ -853,6 +854,12 @@
     persistenceError = "";
     activate(createSession(accountDid, id(), "brew"), null);
   }
+  let manualEditor = $state<HTMLDetailsElement>();
+  async function editRoaster() {
+    manualOpen = true;
+    await tick();
+    manualEditor?.querySelector<HTMLElement>("#draft-roaster_rkey")?.focus();
+  }
   function saveInput(s: DraftSession) {
     const result: Record<string, unknown> = {};
     for (const [path, value] of Object.entries(s.draft.fields)) {
@@ -878,6 +885,11 @@
         engine = restoreSession(saved);
         choices = [];
         snapshot = engine.snapshot();
+        if (saved.draft.kind === "bean") {
+          const key = saved.draft.fields.roaster_rkey;
+          if (key && !library.roasters?.some((item) => item.rkey === key))
+            void loadLibrary(saved.accountDid);
+        }
       }
     } catch (e) {
       if (engine === origin) {
@@ -980,6 +992,7 @@
           throw new Error(
             "The account changed before saving began. No record was submitted; check the original account before retrying.",
           );
+        const savedEngine = new DraftEngine(s);
         let rkey = "";
         let owner = s.accountDid;
         // TODO: future conversational saving requires a separate explicit confirmation contract.
@@ -987,18 +1000,31 @@
           const response = await createBrew(fetch, body as BrewInput);
           rkey = response.brew.rkey;
           owner = response.author_did || owner;
-        } else if (s.draft.kind === "bean")
-          rkey = (await createBean(fetch, body as BeanInput)).rkey;
-        else if (s.draft.kind === "grinder")
+        } else if (s.draft.kind === "bean") {
+          const bean = await createBean(fetch, body as BeanInput);
+          rkey = bean.rkey;
+          if (bean.roaster?.rkey)
+            savedEngine.edit({ roaster_rkey: bean.roaster.rkey });
+        } else if (s.draft.kind === "grinder")
           rkey = (await createGrinder(fetch, body as GrinderInput)).rkey;
-        else rkey = (await createBrewer(fetch, body as BrewerInput)).rkey;
+        else if (s.draft.kind === "brewer")
+          rkey = (await createBrewer(fetch, body as BrewerInput)).rkey;
+        else {
+          const { name, location, website } = s.draft.fields;
+          rkey = (
+            await createRoaster(fetch, {
+              name: name?.trim() ?? "",
+              location: location?.trim() ?? "",
+              website: website?.trim() ?? "",
+            })
+          ).rkey;
+        }
         if (!rkey)
           throw new Error(
             "The save response did not include a record link. Check My Coffee before retrying.",
           );
-        const savedEngine = new DraftEngine(s);
         savedEngine.markSaved(
-          `/${s.draft.kind === "brew" ? "brews" : s.draft.kind === "bean" ? "beans" : s.draft.kind === "grinder" ? "grinders" : "brewers"}/${encodeURIComponent(owner)}/${encodeURIComponent(rkey)}`,
+          `/${s.draft.kind}s/${encodeURIComponent(owner)}/${encodeURIComponent(rkey)}`,
         );
         appCache.invalidateCache();
         return savedEngine.snapshot();
@@ -1119,7 +1145,7 @@
                 >
                 <option value="grinder">Grinder</option><option value="brewer"
                   >Brewer</option
-                >
+                ><option value="roaster">Roaster</option>
               </select>
             </label>{/if}
         </div>
@@ -1274,10 +1300,15 @@
                     <DraftPreview
                       draft={snapshot.draft}
                       showRating={snapshot.draft.kind !== "brew"}
+                      oneditroaster={editRoaster}
                       {library}
                       brewerType={snapshot.brewerType}
                     />
-                    <details class="manual-editor" bind:open={manualOpen}>
+                    <details
+                      class="manual-editor"
+                      bind:this={manualEditor}
+                      bind:open={manualOpen}
+                    >
                       <summary>Edit details</summary>
                       <div class="editor-fields">
                         {#key snapshot.id + snapshot.draft.kind}<DraftEditor

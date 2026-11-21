@@ -104,10 +104,13 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req arabica.CreateBeanRequest
+	var req struct {
+		arabica.CreateBeanRequest
+		NewRoasterName string `json:"new_roaster_name"`
+	}
 
 	if err := DecodeRequest(r, &req, func() error {
-		req = arabica.CreateBeanRequest{
+		req.CreateBeanRequest = arabica.CreateBeanRequest{
 			Name:        r.FormValue("name"),
 			Origin:      r.FormValue("origin"),
 			Variety:     r.FormValue("variety"),
@@ -122,6 +125,7 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 			Closed:      r.FormValue("closed") == "true",
 			SourceRef:   r.FormValue("source_ref"),
 		}
+		req.NewRoasterName = r.FormValue("new_roaster_name")
 		log.Debug().
 			Str("name", req.Name).
 			Str("closed_value", r.FormValue("closed")).
@@ -140,20 +144,28 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If a new roaster name was provided and no existing roaster selected, create it
-	if newRoasterName := r.FormValue("new_roaster_name"); newRoasterName != "" && req.RoasterRKey == "" {
-		roaster, roasterErr := store.CreateRoaster(r.Context(), &arabica.CreateRoasterRequest{
-			Name:     newRoasterName,
+	var roaster *arabica.Roaster
+	if name := strings.Join(strings.Fields(req.NewRoasterName), " "); name != "" && req.RoasterRKey == "" {
+		newRoaster := arabica.CreateRoasterRequest{
+			Name:     name,
 			Location: r.FormValue("new_roaster_location"),
 			Website:  r.FormValue("new_roaster_website"),
-		})
-		if roasterErr != nil {
-			log.Error().Err(roasterErr).Str("name", newRoasterName).Msg("Failed to create roaster for bean")
-			HandleStoreError(w, roasterErr, "Failed to create roaster")
+		}
+		if err := newRoaster.Validate(); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		var err error
+		roaster, err = findOrCreateBeanRoaster(r.Context(), store, &newRoaster)
+		if err != nil {
+			HandleStoreError(w, err, "Failed to add roaster to bean")
+			return
+		}
+		if roaster == nil {
+			WriteJSONError(w, http.StatusConflict, "ambiguous_roaster", "More than one saved roaster has that name. Select a saved roaster.")
 			return
 		}
 		req.RoasterRKey = roaster.RKey
-		log.Info().Str("roaster_rkey", roaster.RKey).Str("name", newRoasterName).Msg("Auto-created roaster for bean")
 	}
 
 	if errMsg := ValidateOptionalRKey(req.RoasterRKey, "Roaster selection"); errMsg != "" {
@@ -162,13 +174,16 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bean, err := store.CreateBean(r.Context(), &req)
+	bean, err := store.CreateBean(r.Context(), &req.CreateBeanRequest)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create bean")
 		HandleStoreError(w, err, "Failed to create bean")
 		return
 	}
 
+	if roaster != nil {
+		bean.Roaster = roaster
+	}
 	h.InvalidateFeedCache()
 	if redirect := r.FormValue("__redirect"); redirect != "" {
 		w.Header().Set("HX-Redirect", redirect)
@@ -176,6 +191,27 @@ func (h *Handler) HandleBeanCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	WriteJSON(w, bean, "bean")
+}
+
+func findOrCreateBeanRoaster(ctx context.Context, store arabicastore.Store, req *arabica.CreateRoasterRequest) (*arabica.Roaster, error) {
+	roasters, err := store.ListRoasters(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var match *arabica.Roaster
+	for _, roaster := range roasters {
+		if !strings.EqualFold(req.Name, strings.Join(strings.Fields(roaster.Name), " ")) {
+			continue
+		}
+		if match != nil {
+			return nil, nil
+		}
+		match = roaster
+	}
+	if match != nil {
+		return match, nil
+	}
+	return store.CreateRoaster(ctx, req)
 }
 
 // HandleRoasterCreate creates a roaster from JSON or form data.

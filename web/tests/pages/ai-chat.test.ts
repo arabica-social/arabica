@@ -13,6 +13,7 @@ import ChatWorkspace from "../../src/lib/components/ai/ChatWorkspace.svelte";
 import DraftEditor from "../../src/lib/components/ai/DraftEditor.svelte";
 import HomeEntry from "../../src/lib/components/ai/HomeEntry.svelte";
 import { createSession, DraftEngine } from "../../src/lib/ai/draft";
+import type { DraftKind } from "../../src/lib/ai/types";
 import {
   saveSession,
   loadSession,
@@ -60,10 +61,7 @@ function install(
   vi.stubGlobal("fetch", fetcher);
   return fetcher;
 }
-function seed(
-  kind: "brew" | "bean" | "grinder" | "brewer",
-  patch: Record<string, unknown>,
-) {
+function seed(kind: DraftKind, patch: Record<string, unknown>) {
   const e = new DraftEngine(createSession(did, "session", kind));
   e.edit(patch);
   saveSession(localStorage, did, e.snapshot());
@@ -739,6 +737,11 @@ describe("AI chat", () => {
       "brewer",
       { name: "V60", brewer_type: "pourover", description: "Glass" },
       "/api/brewers",
+    ],
+    [
+      "roaster",
+      { name: "North Star", location: "", website: "" },
+      "/api/roasters",
     ],
     [
       "brew",

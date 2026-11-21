@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { registerReauthDraft } from "#lib/stores/reauthDraft.js";
   import { goto } from "$app/navigation";
   import EntityCombo from "../EntityCombo.svelte";
   import PoursEditor from "./PoursEditor.svelte";
@@ -55,6 +56,32 @@
   let nameError = $state("");
   let formError = $state("");
   let submitting = $state(false);
+
+  registerReauthDraft(
+    "recipe",
+    () => ({
+      name,
+      brewerRKey,
+      brewerLabel,
+      brewerType,
+      coffeeAmount,
+      waterAmount,
+      notes,
+      pours,
+    }),
+    (draft) => {
+      ({
+        name,
+        brewerRKey,
+        brewerLabel,
+        brewerType,
+        coffeeAmount,
+        waterAmount,
+        notes,
+        pours,
+      } = draft);
+    },
+  );
 
   function validate(): boolean {
     nameError = name.trim() ? "" : "Name is required";

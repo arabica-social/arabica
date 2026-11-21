@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { notifySessionExpiredForResponse } from "#lib/api/client.js";
+  import { registerReauthDraft } from "#lib/stores/reauthDraft.js";
   import Avatar from "../Avatar.svelte";
   import {
     app,
@@ -36,6 +38,16 @@
   let replyToRKey = $state("");
   let replyText = $state("");
   let postingReply = $state(false);
+
+  registerReauthDraft(
+    "comments",
+    () => ({ subjectURI, commentText, replyText, replyToRKey }),
+    (draft) => {
+      if (draft.subjectURI !== subjectURI) return;
+      ({ commentText, replyText, replyToRKey } = draft);
+    },
+    () => Boolean(commentText || replyText),
+  );
 
   // Effective viewer DID: prefer the explicitly-passed prop (entity view
   // pages may forward it), fall back to the session store DID so the
@@ -101,6 +113,7 @@
         },
         body,
       });
+      notifySessionExpiredForResponse(res);
       if (!res.ok) throw new Error(`Comment failed: ${res.status}`);
       // Replace local state with the server's canonical thread.
       const contentType = res.headers.get("content-type") ?? "";
@@ -204,6 +217,7 @@
         },
         body,
       });
+      notifySessionExpiredForResponse(res);
       if (!res.ok) throw new Error(`Reply failed: ${res.status}`);
       const contentType = res.headers.get("content-type") ?? "";
       if (contentType.includes("application/json")) {

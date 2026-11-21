@@ -48,7 +48,7 @@ const integer = (value: unknown): value is number =>
   Number.isSafeInteger(value) && (value as number) >= 0;
 const text = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
-const kinds = ["brew", "bean", "grinder", "brewer"];
+const kinds = ["brew", "bean", "grinder", "brewer", "roaster"];
 function validToken(
   value: unknown,
   session: DraftSession,

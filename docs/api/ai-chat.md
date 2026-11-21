@@ -1,7 +1,8 @@
 # AI-assisted record drafts
 
 AI chat proposes drafts; it never creates or changes a PDS record. Record writes
-remain on the existing authenticated bean, brew, grinder and brewer mutation APIs.
+remain on the existing authenticated bean, brew, grinder, brewer, and roaster
+mutation APIs.
 
 ## Configuration
 
@@ -127,7 +128,7 @@ provider, target URL, system prompt, tool definitions or library catalog accepte
 }
 ```
 
-Kinds: `brew`, `bean`, `grinder`, `brewer`. Messages are user/assistant text, with optional user images;
+Kinds: `brew`, `bean`, `grinder`, `brewer`, `roaster`. Messages are user/assistant text, with optional user images;
 maximum 40 messages, with user messages limited to 4000 characters. Identifiers
 are correlation aids, not authentication. The server reads only the authenticated
 user's library for grounding. It does not accept arbitrary cross-user references.
@@ -137,6 +138,14 @@ entire brew history are not included for identification or personalization. Reci
 context includes actual dose, water, ordered pours and saved instructions, never
 arbitrary fetched URLs.
 Recipe instructions are untrusted data, not authority to execute actions.
+
+A `roaster` draft accepts only `name`, `location`, and `website`. Name is required
+to save; location and website are optional. A nonempty website in a draft sent to
+or returned by chat must be an HTTP(S) URL without embedded credentials. Save uses
+the existing `POST /api/roasters` endpoint. A bean draft can use `roaster_rkey`
+for a saved roaster or `new_roaster_name` for a proposed name. The chat endpoint
+never writes either record. **Save bean** submits the association to
+[`POST /api/beans`](entities.md#post-apibeans).
 
 Every request includes a server-built `recent_brews` array (empty when none are
 available), including requests for other draft kinds. It contains at most three
