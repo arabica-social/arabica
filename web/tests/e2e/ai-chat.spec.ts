@@ -1,5 +1,6 @@
 import { test, expect } from "./fixtures";
 import type { Page } from "@playwright/test";
+import type { ChatRequest } from "../../src/lib/api/ai";
 
 // Record the interaction for visual motion review alongside the contract assertions.
 test.use({ video: "on", aiAccess: true });
@@ -1265,6 +1266,75 @@ test.describe("Chat-first motion", () => {
         await video.saveAs(`/tmp/arabica-chat-flow-${scenario.name}.webm`);
     });
   }
+});
+
+test.describe("chat provider errors", () => {
+  test.use({
+    expectedAPIError: { method: "POST", pathname: "/api/ai/chat", status: 502 },
+  });
+
+  test("chat 502 preserves manual draft edits and Retry resends one message", async ({
+    authedPage: page,
+  }) => {
+    const message = "Repeat my last brew and use the same water amount";
+    const error = "Assistant unavailable; your draft has not changed";
+    const reply = "Use 300 grams of water.";
+    const requests: ChatRequest[] = [];
+    await page.route("**/api/ai/status", (route) =>
+      route.fulfill({ json: { enabled: true, allowed: true } }),
+    );
+    await page.route("**/api/ai/chat", (route) => {
+      requests.push(route.request().postDataJSON() as ChatRequest);
+      if (requests.length === 1)
+        return route.fulfill({
+          status: 502,
+          json: { code: "ai_provider_error", error },
+        });
+      return route.fulfill({
+        json: {
+          reply,
+          kind: "brew",
+          patch: { water_amount: 300 },
+          choices: [],
+        },
+      });
+    });
+
+    await page.goto("/chat");
+    await page.getByRole("button", { name: "Add details manually" }).click();
+    const coffee = page.getByLabel("Coffee (g)", { exact: true });
+    const water = page.getByLabel("Water (g)", { exact: true });
+    await coffee.fill("18");
+    await page
+      .getByRole("textbox", { name: "Message", exact: true })
+      .fill(message);
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+
+    const alert = page.getByRole("alert").filter({ hasText: error });
+    const retry = page.getByRole("button", { name: "Retry", exact: true });
+    const conversation = page.getByRole("log", { name: "Conversation" });
+    await expect(alert).toBeVisible();
+    await expect(retry).toBeVisible();
+    await openEditor(page);
+    await expect(coffee).toHaveValue("18");
+    await expect(water).toHaveValue("");
+    await expect(conversation.getByText(message)).toHaveCount(1);
+    expect(requests).toHaveLength(1);
+
+    await retry.click();
+    await expect(conversation.getByText(reply)).toBeVisible();
+    await expect(conversation.getByText(message)).toHaveCount(1);
+    await expect(alert).toHaveCount(0);
+    await expect(retry).toHaveCount(0);
+    await openEditor(page);
+    await expect(coffee).toHaveValue("18");
+    await expect(water).toHaveValue("300");
+    expect(requests).toHaveLength(2);
+    expect(requests[0].messages).toEqual([{ role: "user", content: message }]);
+    expect(requests[1].messages).toEqual(requests[0].messages);
+    expect(requests[1].draft).toEqual(requests[0].draft);
+    expect(requests[1].draft.fields.coffee_amount).toBe(18);
+  });
 });
 
 test("Save opens and focuses missing optional-editor details without writing", async ({

@@ -162,13 +162,16 @@ and account identifiers are excluded. History is untrusted read-only context,
 not instructions. The model may use it for “same as last time” or a dated brew,
 while explicit new values and manual edits take precedence. Old dates and tasting
 results are not defaults for the new record. For a user-requested repeat/adaptation,
-the provider is instructed to return
-`recent_brew_id` selecting the supplied history entry it uses. The marker remains
-optional for requests that do not reuse history. The service validates this
-provider-only source marker and permits grounding only that entry's validated
-linked records; it is not accepted from the browser or returned in the HTTP
-response. Unrelated selections and replacements of differing existing references
-remain reviewable. Without a source marker, normal reference grounding applies.
+the provider returns `recent_brew_id` alongside `patch` to identify the supplied
+history entry it used. The marker is optional when the response does not reuse
+history. If it appears only in the main `patch` of an in-scope brew response,
+Arabica can move a nonempty string to its expected location before applying the
+same source and draft checks. Duplicate placements and markers in choice patches
+are rejected. This repair makes no additional provider call. The marker grounds
+only that history entry's validated linked records; the browser cannot supply it
+and the HTTP response never includes it. Unrelated selections and replacements of
+existing references remain reviewable. Without a source marker, normal reference
+grounding applies.
 Stale-response protections and Save-only writes remain in force. A failed brew
 collection read fails the request before the provider call rather than silently
 claiming there is no history. The provider sees only three entries, although the
@@ -425,12 +428,13 @@ upstream provider timeout while the incoming request is live remains a 502.
 A 502 also emits an `AI chat provider failure` server log event correlated by
 `trace_id`. The public API error remains generic except for `ai_output_limit`,
 which identifies output-budget exhaustion and suggests increasing `max_tokens`.
-Logs include only fixed
-`stage`/`reason`/`provider_error` categories, numeric `upstream_status`, allowlisted
-`finish_reason`, response byte/tool-call counts, configured `max_tokens` for
-transport-rejected completions, and an allowlisted invalid field
-name when applicable. They never include credentials, URLs, request headers,
-prompts, library values, raw model output or upstream error bodies.
+Logs include fixed categories, allowlisted response metadata, and counts.
+`upstream_status` and `max_tokens` appear when the transport diagnostic supplies
+them. For a known field, `field_path` locates it in the provider JSON; when the
+field belongs elsewhere, `expected_field_path` names its intended location.
+A successful recent-brew marker repair emits `AI chat provider response repaired`
+with the same trace correlation. These events never include credentials, URLs,
+request headers, prompts, field values, raw model output or upstream error bodies.
 
 Examples:
 

@@ -113,10 +113,24 @@ func (h AIHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 		default:
 			diagnostic := arabicaai.ProviderDiagnostic(err)
 			event := log.Error().Str("stage", diagnostic.Stage).Str("reason", diagnostic.Reason).
-				Str("provider_error", diagnostic.Transport.Category).Int("upstream_status", diagnostic.Transport.HTTPStatus).
-				Str("finish_reason", diagnostic.FinishReason).Str("message_role", diagnostic.MessageRole).Int("response_bytes", diagnostic.ContentBytes).
-				Int("tool_calls", diagnostic.ToolCalls).Int("max_tokens", diagnostic.Transport.MaxTokens).Str("field", diagnostic.Field).
+				Str("finish_reason", diagnostic.FinishReason).Int("response_bytes", diagnostic.ContentBytes).
+				Int("tool_calls", diagnostic.ToolCalls).Str("field", diagnostic.Field).
 				Str("validation_issue", diagnostic.ValidationIssue).Int("unknown_fields", diagnostic.UnknownFields)
+			if diagnostic.Stage == "request" {
+				event.Str("provider_error", diagnostic.Transport.Category).Str("message_role", diagnostic.MessageRole)
+				if diagnostic.Transport.HTTPStatus != 0 {
+					event.Int("upstream_status", diagnostic.Transport.HTTPStatus)
+				}
+				if diagnostic.Transport.MaxTokens != 0 {
+					event.Int("max_tokens", diagnostic.Transport.MaxTokens)
+				}
+			}
+			if diagnostic.FieldPath != "" {
+				event.Str("field_path", diagnostic.FieldPath)
+			}
+			if diagnostic.ExpectedPath != "" {
+				event.Str("expected_field_path", diagnostic.ExpectedPath)
+			}
 			if span := trace.SpanContextFromContext(r.Context()); span.IsValid() {
 				event = event.Str("trace_id", span.TraceID().String())
 			}

@@ -67,14 +67,17 @@ configured numeric `max_tokens`. Unknown role and finish-reason values are
 recorded as `other`, never raw text. `provider_error=output_token_limit` with
 `finish_reason=length` means the provider reached its output limit; even a
 nonempty truncated response is rejected rather than applied as a draft.
-For `reason=invalid_draft_fields`, `validation_issue` distinguishes `invalid_kind`,
-`unknown_fields`, and `invalid_value`. `unknown_fields` counts unsupported patch
-keys; `field` identifies only names from the fixed schema/envelope allowlist.
-For example, `validation_issue=unknown_fields` with `field=recent_brew_id` means
-source metadata was incorrectly placed inside the patch instead of the envelope.
-Unrecognized key names, record-kind values, and all field values are withheld.
-These diagnostics do not relax draft validation or automatically drop fields.
-No model content, tool arguments, credentials, or upstream error bodies are logged.
+For draft validation failures, `validation_issue` distinguishes unsupported
+fields, invalid values and other contract errors. `unknown_fields` counts
+unsupported patch keys. `field` names an allowlisted key, and `field_path` locates
+it in the provider JSON. Unknown key names and all field values are withheld.
+
+The warning `AI chat provider response repaired` with `reason=misplaced_field`
+records a successful move from `/patch/recent_brew_id` to `/recent_brew_id`.
+Arabica still validates the source against the supplied history and validates
+the full proposal. A rejected marker logs the offending `field_path` and, when
+misplaced, the `expected_field_path`. Neither event includes model content, tool
+arguments, credentials or upstream error bodies.
 
 ## Per-DID request history
 

@@ -1,8 +1,13 @@
 package ai
 
 import (
+	"context"
 	"errors"
 	"sort"
+
+	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel/trace"
+
 	provider "tangled.org/arabica.social/arabica/internal/ai"
 )
 
@@ -17,6 +22,8 @@ type ProviderFailure struct {
 	ContentBytes    int
 	ToolCalls       int
 	Field           string
+	FieldPath       string
+	ExpectedPath    string
 	ValidationIssue string
 	UnknownFields   int
 }
@@ -44,6 +51,33 @@ func rejected(reason string, c provider.Completion) *ProviderFailure {
 	}
 	return &ProviderFailure{Stage: "response", Reason: reason, FinishReason: finish, ContentBytes: len(c.Message.Content), ToolCalls: len(c.Message.ToolCalls)}
 }
+
+const (
+	recentBrewField         = "recent_brew_id"
+	recentBrewPath          = "/" + recentBrewField
+	misplacedRecentBrewPath = "/patch" + recentBrewPath
+)
+
+func rejectedRecentBrewID(reason, issue, path string, c provider.Completion) *ProviderFailure {
+	f := rejected(reason, c)
+	f.ValidationIssue = issue
+	f.Field = recentBrewField
+	f.FieldPath = path
+	if path != recentBrewPath {
+		f.ExpectedPath = recentBrewPath
+	}
+	return f
+}
+
+func logRecentBrewIDRepair(ctx context.Context) {
+	event := log.Warn().Str("stage", "response").Str("reason", "misplaced_field").
+		Str("field", recentBrewField).Str("field_path", misplacedRecentBrewPath).Str("expected_field_path", recentBrewPath)
+	if span := trace.SpanContextFromContext(ctx); span.IsValid() {
+		event = event.Str("trace_id", span.TraceID().String())
+	}
+	event.Msg("AI chat provider response repaired")
+}
+
 func rejectedFields(kind string, patch map[string]any, c provider.Completion) error {
 	f := rejected("invalid_draft_fields", c)
 	rules, ok := fields[kind]
@@ -64,6 +98,7 @@ func rejectedFields(kind string, patch map[string]any, c provider.Completion) er
 		for _, name := range names {
 			if _, ok := rules[name]; !ok && diagnosticFieldName(name) {
 				f.Field = name
+				f.FieldPath = "/patch/" + name
 				break
 			}
 		}
@@ -73,6 +108,7 @@ func rejectedFields(kind string, patch map[string]any, c provider.Completion) er
 	for _, name := range names {
 		if validateFields(kind, map[string]any{name: patch[name]}) != nil {
 			f.Field = name
+			f.FieldPath = "/patch/" + name
 			break
 		}
 	}
@@ -96,7 +132,7 @@ func diagnosticFieldName(name string) bool {
 		}
 	}
 	switch name {
-	case "in_scope", "reply", "kind", "patch", "choices", "recent_brew_id", "recent_brews", "espresso_params", "pourover_params":
+	case "in_scope", "reply", "kind", "patch", "choices", recentBrewField, "recent_brews", "espresso_params", "pourover_params":
 		return true
 	default:
 		return false

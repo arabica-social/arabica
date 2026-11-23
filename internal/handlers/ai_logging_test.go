@@ -5,15 +5,19 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"go.opentelemetry.io/otel/trace"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"testing"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel/trace"
+
 	provider "tangled.org/arabica.social/arabica/internal/ai"
 	arabicaai "tangled.org/arabica.social/arabica/internal/arabica/ai"
-	"testing"
+	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
+	"tangled.org/arabica.social/arabica/internal/records"
 )
 
 func TestAIProviderFailureLogsSafeDiagnostics(t *testing.T) {
@@ -136,11 +140,10 @@ func TestAIInvalidDraftFieldsDiagnostics(t *testing.T) {
 	}{
 		{"unsupported kind", "secret-kind", "invalid_kind", "", map[string]any{}, 0},
 		{"unknown key", "brew", "unknown_fields", "", map[string]any{"secret-key": "secret-value"}, 1},
-		{"misplaced recent source", "brew", "unknown_fields", "recent_brew_id", map[string]any{"recent_brew_id": "recent-brew-1"}, 1},
 		{"nested preparation", "brew", "unknown_fields", "pourover_params", map[string]any{"pourover_params": map[string]any{"filter": "secret-value"}}, 1},
 		{"wrong kind field", "brew", "unknown_fields", "roast_level", map[string]any{"roast_level": "secret-value"}, 1},
 		{"invalid known value", "brew", "invalid_value", "temperature", map[string]any{"temperature": float64(999)}, 0},
-		{"multiple unknown keys", "brew", "unknown_fields", "recent_brew_id", map[string]any{"secret-key": "secret-value", "recent_brew_id": "recent-brew-1"}, 2},
+		{"multiple unknown keys", "brew", "unknown_fields", "recent_brews", map[string]any{"secret-key": "secret-value", "recent_brews": []any{}}, 2},
 		{"deterministic invalid field", "brew", "invalid_value", "coffee_amount", map[string]any{"temperature": float64(999), "coffee_amount": "secret-value"}, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -169,10 +172,16 @@ func TestAIInvalidDraftFieldsDiagnostics(t *testing.T) {
 				"stage": "response", "reason": "invalid_draft_fields", "finish_reason": "stop",
 				"validation_issue": tc.issue, "field": tc.field, "unknown_fields": float64(tc.unknown),
 			}
+			if tc.field != "" {
+				want["field_path"] = "/patch/" + tc.field
+			}
 			for key, value := range want {
 				if entry[key] != value {
 					t.Errorf("%s = %v, want %v", key, entry[key], value)
 				}
+			}
+			if _, ok := entry["field_path"]; tc.field == "" && ok {
+				t.Error("unexpected field path")
 			}
 			if strings.Contains(logged.String(), "secret") || strings.Contains(rec.Body.String(), "secret") {
 				t.Fatal("diagnostic leaked model content")
@@ -194,5 +203,114 @@ func TestAITruncatedDraftPreservesRequest(t *testing.T) {
 		if rec.Code != 502 || !strings.Contains(rec.Body.String(), "ai_output_limit") || !strings.Contains(rec.Body.String(), "max_tokens") || strings.Contains(rec.Body.String(), "coffee_amount") || calls != 1 {
 			t.Fatalf("unexpected truncated result: %d %s (%d calls)", rec.Code, rec.Body.String(), calls)
 		}
+	}
+}
+
+func TestAIChatMisplacedRecentBrewMarker(t *testing.T) {
+	const did = "did:plc:test123456789"
+	const topPath, patchPath = "/recent_brew_id", "/patch/recent_brew_id"
+	const choicePath = "/choices/0/patch/recent_brew_id"
+	for _, tc := range []struct {
+		name, kind, topLevel, patch, choices, reason, issue, path string
+		outOfScope                                                bool
+	}{
+		{name: "recover linked bean", patch: `{"recent_brew_id":"recent-brew-1","bean_rkey":"bean-1","coffee_amount":16}`},
+		{name: "unrecognized source", patch: `{"recent_brew_id":"secret-id","bean_rkey":"bean-1"}`, reason: "unrecognized_recent_brew", issue: "unrecognized_source", path: patchPath},
+		{name: "canonical unrecognized source", topLevel: `"recent_brew_id":"secret-id",`, patch: `{}`, reason: "unrecognized_recent_brew", issue: "unrecognized_source", path: topPath},
+		{name: "duplicate placement", topLevel: `"recent_brew_id":"recent-brew-1",`, patch: `{"recent_brew_id":"recent-brew-1"}`, reason: "invalid_draft_fields", issue: "multiple_field_locations", path: patchPath},
+		{name: "explicit null is still a duplicate", topLevel: `"recent_brew_id":null,`, patch: `{"recent_brew_id":"recent-brew-1"}`, reason: "invalid_draft_fields", issue: "multiple_field_locations", path: patchPath},
+		{name: "malformed source", patch: `{"recent_brew_id":{"id":"secret-id"}}`, reason: "invalid_draft_fields", issue: "invalid_value", path: patchPath},
+		{name: "empty source", patch: `{"recent_brew_id":""}`, reason: "invalid_draft_fields", issue: "invalid_value", path: patchPath},
+		{name: "non-brew", kind: "bean", patch: `{"recent_brew_id":"recent-brew-1"}`, reason: "invalid_draft_fields", issue: "invalid_kind", path: patchPath},
+		{name: "out of scope", outOfScope: true, patch: `{"recent_brew_id":"recent-brew-1"}`, reason: "invalid_draft_fields", issue: "invalid_scope", path: patchPath},
+		{name: "invalid other field", patch: `{"recent_brew_id":"recent-brew-1","temperature":999}`, reason: "invalid_draft_fields", issue: "invalid_value", path: "/patch/temperature"},
+		{name: "choice placement is rejected", patch: `{}`, choices: `[{"label":"Brew","patch":{"recent_brew_id":"recent-brew-1","bean_rkey":"bean-1"}}]`, reason: "invalid_choice_fields", issue: "misplaced_field", path: choicePath},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var logged bytes.Buffer
+			original := log.Logger
+			log.Logger = zerolog.New(&logged)
+			t.Cleanup(func() { log.Logger = original })
+			h, ctx := setupAI(t)
+			beanURI := "at://" + did + "/" + arabica.NSIDBean + "/old-bag"
+			ctx.MockStore.FetchAllRecordsFunc = func(_ context.Context, nsid string) ([]records.RawRecord, error) {
+				switch nsid {
+				case arabica.NSIDBrew:
+					return []records.RawRecord{{RKey: "old-brew", Record: map[string]any{"createdAt": "2026-11-01T00:00:00Z", "beanRef": beanURI}}}, nil
+				case arabica.NSIDBean:
+					return []records.RawRecord{{RKey: "old-bag", URI: beanURI, Record: map[string]any{"name": "Old bag", "closed": true}}}, nil
+				}
+				return nil, nil
+			}
+			kind := tc.kind
+			if kind == "" {
+				kind = "brew"
+			}
+			choices := tc.choices
+			if choices == "" {
+				choices = "[]"
+			}
+			calls := 0
+			h.Service = arabicaai.NewService(aiFakeCompleter(func(context.Context, []provider.Message, []provider.Tool, json.RawMessage) (provider.Completion, error) {
+				calls++
+				body := `{` + tc.topLevel + `"kind":"` + kind + `","in_scope":true,"reply":"private reply","patch":` + tc.patch + `,"choices":` + choices + `}`
+				if tc.outOfScope {
+					body = strings.Replace(body, `"in_scope":true`, `"in_scope":false`, 1)
+				}
+				return provider.Completion{Message: provider.Message{Role: "assistant", Content: body}, FinishReason: "stop"}, nil
+			}))
+			request := aiRequest(strings.Replace(chatRequest, "18 grams coffee", "same as last time but 16 grams", 1))
+			tid, _ := trace.TraceIDFromHex("0123456789abcdef0123456789abcdef")
+			sid, _ := trace.SpanIDFromHex("0123456789abcdef")
+			request = request.WithContext(trace.ContextWithSpanContext(request.Context(), trace.NewSpanContext(trace.SpanContextConfig{TraceID: tid, SpanID: sid})))
+			rec := httptest.NewRecorder()
+			h.HandleChat(rec, request)
+			if calls != 1 {
+				t.Fatalf("provider calls = %d, want 1", calls)
+			}
+			var entry map[string]any
+			if err := json.Unmarshal(logged.Bytes(), &entry); err != nil {
+				t.Fatalf("missing or invalid diagnostic event: %v", err)
+			}
+			want := map[string]any{"stage": "response", "trace_id": tid.String()}
+			if tc.reason == "" {
+				if rec.Code != http.StatusOK || strings.Contains(rec.Body.String(), "recent_brew_id") {
+					t.Fatalf("expected provider-only marker to be removed in a 200: %d %s", rec.Code, rec.Body)
+				}
+				var response arabicaai.Response
+				if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil || response.Patch["bean_rkey"] != "old-bag" || response.Patch["coffee_amount"] != float64(16) || len(response.Choices) != 0 {
+					t.Fatalf("expected grounded repeat with explicit override: %+v (%v)", response, err)
+				}
+				want["reason"], want["field_path"], want["expected_field_path"] = "misplaced_field", patchPath, topPath
+				want["message"] = "AI chat provider response repaired"
+			} else {
+				if rec.Code != http.StatusBadGateway || !strings.Contains(rec.Body.String(), "ai_provider_error") || strings.Contains(rec.Body.String(), "private reply") {
+					t.Fatalf("expected redacted 502 without proposal: %d %s", rec.Code, rec.Body)
+				}
+				want["reason"], want["validation_issue"] = tc.reason, tc.issue
+				if tc.path != "" {
+					want["field_path"] = tc.path
+				}
+				if tc.path == patchPath || tc.path == choicePath {
+					want["expected_field_path"] = topPath
+				}
+				want["message"] = "AI chat provider failure"
+			}
+			for key, value := range want {
+				if entry[key] != value {
+					t.Errorf("%s = %v, want %v", key, entry[key], value)
+				}
+			}
+			for _, omitted := range []string{"upstream_status", "max_tokens", "provider_error"} {
+				if _, ok := entry[omitted]; ok {
+					t.Errorf("unexpected transport field %s", omitted)
+				}
+			}
+			for _, secret := range []string{did, "secret-id", "recent-brew-1", "private reply", "old-bag"} {
+				if strings.Contains(logged.String(), secret) {
+					t.Errorf("diagnostic leaked %q", secret)
+				}
+			}
+		})
 	}
 }

@@ -43,6 +43,7 @@ function readServerDID(): string {
 
 export const test = base.extend<{
   aiAccess: boolean;
+  expectedAPIError: { method: string; pathname: string; status: number } | null;
   account: E2EAccount;
   authedPage: Page;
   apiRequest: APIRequestContext;
@@ -50,6 +51,7 @@ export const test = base.extend<{
   waitForIndex: (uri: string, present?: boolean) => Promise<void>;
 }>({
   aiAccess: [false, { option: true }],
+  expectedAPIError: [null, { option: true }],
   account: async ({ playwright, aiAccess }, use) => {
     const controlURL = readControlURL();
     if (!controlURL)
@@ -70,7 +72,7 @@ export const test = base.extend<{
     await use(account);
   },
 
-  authedPage: async ({ browser, account }, use) => {
+  authedPage: async ({ browser, account, expectedAPIError }, use) => {
     const baseURL = readServerURL();
     const authHeaders = {
       "X-Test-Auth-DID": account.did,
@@ -88,6 +90,7 @@ export const test = base.extend<{
     });
 
     const failures: string[] = [];
+    let pendingAPIError = expectedAPIError;
     const page = await context.newPage();
     page.on("pageerror", (error) =>
       failures.push(`page error: ${error.stack ?? error.message}`),
@@ -116,14 +119,27 @@ export const test = base.extend<{
         failures.push(`asset ${response.status()}: ${pathname}`);
       }
       if (pathname.startsWith("/api/") && response.status() >= 500) {
-        failures.push(
-          `API ${response.status()}: ${response.request().method()} ${pathname}`,
-        );
+        const method = response.request().method();
+        const status = response.status();
+        if (
+          pendingAPIError &&
+          pendingAPIError.pathname === pathname &&
+          pendingAPIError.method === method &&
+          pendingAPIError.status === status
+        ) {
+          pendingAPIError = null;
+        } else {
+          failures.push(`API ${status}: ${method} ${pathname}`);
+        }
       }
     });
 
     await use(page);
     await context.close();
+    if (pendingAPIError) {
+      const { status, method, pathname } = pendingAPIError;
+      failures.push(`Missing expected API ${status}: ${method} ${pathname}`);
+    }
     if (failures.length > 0) throw new Error(failures.join("\n"));
   },
 

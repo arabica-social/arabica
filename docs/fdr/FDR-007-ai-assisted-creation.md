@@ -42,8 +42,9 @@ manual forms or a general-purpose assistant. Only the Save button writes records
   Reloading an interrupted or failed request also offers Retry for its unanswered
   user message; retrying does not append the message again. Provider output-budget
   exhaustion reports that specific cause and asks the operator to increase the
-  token limit; empty or partial responses never change the draft. There is no
-  automatic retry.
+  token limit; empty or partial responses never change the draft. Arabica can
+  repair a misplaced recent-brew marker locally if the proposal passes the usual
+  checks. There is no automatic retry.
 - Chat supports JPEG, PNG and WebP attachments through a file picker or paste,
   with removable thumbnails and image-only messages. Mixed text/image paste keeps
   the text; ordinary text paste retains native editing behavior. Up to four images

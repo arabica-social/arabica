@@ -2,10 +2,12 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
+	provider "tangled.org/arabica.social/arabica/internal/ai"
 	arabica "tangled.org/arabica.social/arabica/internal/arabica/entities"
 	"tangled.org/pdewey.com/atp"
 )
@@ -153,6 +155,33 @@ func brewPreparation(record map[string]any) map[string]any {
 		put("pours", pours)
 	}
 	return out
+}
+
+func recentBrewSource(topLevel json.RawMessage, patch map[string]any, kind string, inScope bool, c provider.Completion) (id, path string, err error) {
+	if topLevel != nil && json.Unmarshal(topLevel, &id) != nil {
+		return "", "", rejectedRecentBrewID("invalid_json_envelope", "invalid_value", recentBrewPath, c)
+	}
+	value, misplaced := patch[recentBrewField]
+	if !misplaced {
+		return id, recentBrewPath, nil
+	}
+	id, ok := value.(string)
+	issue := ""
+	switch {
+	case topLevel != nil:
+		issue = "multiple_field_locations"
+	case !ok || id == "":
+		issue = "invalid_value"
+	case kind != "brew":
+		issue = "invalid_kind"
+	case !inScope:
+		issue = "invalid_scope"
+	}
+	if issue != "" {
+		return "", "", rejectedRecentBrewID("invalid_draft_fields", issue, misplacedRecentBrewPath, c)
+	}
+	delete(patch, recentBrewField)
+	return id, misplacedRecentBrewPath, nil
 }
 
 func groundRecentBrew(recent []recentBrew, library catalog, id string) bool {
